@@ -148,9 +148,6 @@ def handle_dialog(res, req):
                     # По схеме можно увидеть, что здесь окажутся и пользователи, которые уже отгадывали города
                     # если есть неотгаданные города, то продолжаем игру
                     res['response']['text'] = 'Вы молодец, ваш рейтинг: {}! Теперь выбери тему для отгадывания: Города, Машины или Еда'.format(str(sessionStorage['balls']))
-                    sessionStorage[user_id]['game_started'] = True
-                    # номер попытки, чтобы показывать фото по порядку
-                    sessionStorage[user_id]['attempt'] = 1
                     sessionStorage['tip'] = ''
                     res['response']['buttons'] = [
                         {
