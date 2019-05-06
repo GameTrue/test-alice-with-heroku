@@ -81,7 +81,12 @@ def handle_dialog(res, req):
 
     if sessionStorage[user_id]['first_name'] is None:
         first_name = get_first_name(req)
-        if first_name is None:
+        txtt = req['request']['original_utterance'].lower()
+        if txtt == 'помощь':
+            res['response']['text'] = 'Проект выполнен учеником Яндекс Лицея. А теперь назови имя!'
+        elif 'что ты умеешь' in txtt:
+            res['response']['text'] = 'Это игра с угадыванием картинок. Ты можешь выбрать темы для отгадывания: Города, Машины или Еда, а такдже в некоторых темах есть возможность выбрать сложность, функционал обновляется. Теперь назови имя!'
+        elif first_name is None:
             res['response']['text'] = 'Не расслышала имя. Повтори, пожалуйста!'
         else:
             sessionStorage[user_id]['first_name'] = first_name
@@ -117,7 +122,49 @@ def handle_dialog(res, req):
         if not sessionStorage[user_id]['game_started']:
             # игра не начата, значит мы ожидаем ответ на предложение сыграть.
             if sessionStorage[user_id]['tip'] == '':
-                if 'города' in req['request']['nlu']['tokens']:
+                txtt = req['request']['original_utterance'].lower()
+                if txtt == 'помощь':
+                    res['response']['text'] = 'Проект выполнен учеником Яндекс Лицея. Так какую тему вы хотите выбрать теперь: Города, Машины, Еда или Вывести баллы?'
+                    res['response']['buttons'] = [
+                        {
+                            'title': 'Города',
+                            'hide': False
+                        },
+                        {
+                            'title': 'Машины',
+                            'hide': False
+                        },
+                        {
+                            'tittle': 'Еда',
+                            'hide': False
+                        },
+                        {
+                            'tittle': 'Никакую',
+                            'hide': False
+                        }
+                    ]'
+                elif 'что ты умеешь' in txtt:
+                    res['response'][
+                        'text'] = 'Это игра с угадыванием картинок. Ты можешь выбрать темы для отгадывания: Города, Машины или Еда, а такдже в некоторых темах есть возможность выбрать сложность, функционал обновляется. Так какую тему вы хотите выбрать теперь: Города, Машины, Еда или Вывести баллы?'
+                    res['response']['buttons'] = [
+                        {
+                            'title': 'Города',
+                            'hide': False
+                        },
+                        {
+                            'title': 'Машины',
+                            'hide': False
+                        },
+                        {
+                            'tittle': 'Еда',
+                            'hide': False
+                        },
+                        {
+                            'tittle': 'Никакую',
+                            'hide': False
+                        }
+                    ]
+                elif 'города' in req['request']['nlu']['tokens']:
                     # если пользователь согласен, то проверяем не отгадал ли он уже все города.
                     # По схеме можно увидеть, что здесь окажутся и пользователи, которые уже отгадывали города
                     # если есть неотгаданные города, то продолжаем игру
