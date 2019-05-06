@@ -250,7 +250,34 @@ def handle_dialog(res, req):
                         }
                     ]
             elif sessionStorage[user_id]['tip'] == 'cars':
-                if 'легкая' in req['request']['nlu']['tokens']:
+                txtt = req['request']['original_utterance'].lower()
+                if txtt == 'помощь':
+                    res['response'][
+                        'text'] = 'Проект выполнен учеником Яндекс Лицея. Так какую тему вы хотите выбрать теперь: Города, Машины, Еда или Вывести баллы?'
+                    res['response']['buttons'] = [
+                        {
+                            'title': 'Легкая',
+                            'hide': False
+                        },
+                        {
+                            'title': 'Сложная',
+                            'hide': False
+                        }
+                    ]
+                elif 'что ты умеешь' in txtt:
+                    res['response'][
+                        'text'] = 'Это игра с угадыванием картинок. Ты можешь выбрать темы для отгадывания: Города, Машины или Еда, а такдже в некоторых темах есть возможность выбрать сложность, функционал обновляется. Так какую сложность выбирешь?'
+                    res['response']['buttons'] = [
+                        {
+                            'title': 'Легкая',
+                            'hide': False
+                        },
+                        {
+                            'title': 'Сложная',
+                            'hide': False
+                        }
+                    ]
+                elif 'легкая' in req['request']['nlu']['tokens']:
                     sessionStorage[user_id]['diff'] = 'easy'
                     sessionStorage[user_id]['game_started'] = True
                     # номер попытки, чтобы показывать фото по порядку
@@ -429,87 +456,83 @@ def play_game(res, req):
                 # сюда попадаем, если попытка отгадать не первая
                 city = sessionStorage[user_id]['city']
                 # проверяем есть ли правильный ответ в сообщение
-                if req['request']['original_utterance'].lower() != 'показать город на карте':
+                if sessionStorage[user_id]['city_fol']:
+                    if cars[req['request']['original_utterance'].lower()] == sessionStorage[user_id]['city_fol'].lower():
+                        res['response']['text'] = 'Правильно! Ты все сделал! Какую тему хотите выбрать теперь: Города, Машины, Еда или Вывести баллы?'
+                        sessionStorage['balls'] += 2
+                        sessionStorage[user_id]['game_started'] = False
+                        res['response']['buttons'] = [
+                            {
+                                'title': 'Города',
+                                'hide': False
+                            },
+                            {
+                                'title': 'Машины',
+                                'hide': False
+                            },
+                            {
+                                'tittle': 'Еда',
+                                'hide': False
+                            },
+                            {
+                                'tittle': 'Никакую',
+                                'hide': False
+                            }
+                        ]
+                        sessionStorage[user_id]['city_fol'] = ''
+                        sessionStorage[user_id]['tip'] = ''
+                        return
+                    else:
+                        sessionStorage['balls'] -= 1
+                        if sessionStorage['balls'] < 0:
+                            sessionStorage['balls'] = 0
+                        res['response']['text'] = 'Вы пытались. Это {}. Сыграем ещё?'.format(
+                            ch_cars[sessionStorage[user_id]['city_fol']])
+                        sessionStorage[user_id]['game_started'] = False
+                        sessionStorage[user_id]['city_fol'] = ''
+                        return
 
-                    if sessionStorage[user_id]['city_fol']:
-                        if cars[req['request']['original_utterance'].lower()] == sessionStorage[user_id]['city_fol'].lower():
-                            res['response']['text'] = 'Правильно! Ты все сделал! Какую тему хотите выбрать теперь: Города, Машины, Еда или Вывести баллы?'
-                            sessionStorage['balls'] += 2
-                            sessionStorage[user_id]['game_started'] = False
-                            res['response']['buttons'] = [
-                                {
-                                    'title': 'Города',
-                                    'hide': False
-                                },
-                                {
-                                    'title': 'Машины',
-                                    'hide': False
-                                },
-                                {
-                                    'tittle': 'Еда',
-                                    'hide': False
-                                },
-                                {
-                                    'tittle': 'Никакую',
-                                    'hide': False
-                                }
-                            ]
-                            sessionStorage[user_id]['city_fol'] = ''
-                            sessionStorage[user_id]['tip'] = ''
-                            return
-                        else:
+                else:
+                    if req['request']['original_utterance'].lower() == 'помощь':
+                        # если да, то добавляем город к sessionStorage[user_id]['guessed_cities'] и
+                        # отправляем пользователя на второй круг. Обратите внимание на этот шаг на схеме.
+                        res['response']['text'] = 'Игра была сделана учеником Яндекс.Лицея!'
+                    elif req['request']['original_utterance'].lower() == city.lower():
+                        # если да, то добавляем город к sessionStorage[user_id]['guessed_cities'] и
+                        # отправляем пользователя на второй круг. Обратите внимание на этот шаг на схеме.
+                        res['response']['text'] = 'Правильно! Теперь укажи страну производителя!'
+                        sessionStorage['balls'] += 1
+                        sessionStorage[user_id]['guessed_cities'].append(city)
+                        sessionStorage[user_id]['city_fol'] = city
+                        return
+                    else:
+                        # если нет
+                        if attempt == 3:
+                            # если попытка третья, то значит, что все картинки мы показали.
+                            # В этом случае говорим ответ пользователю,
+                            # добавляем город к sessionStorage[user_id]['guessed_cities'] и отправляем его на второй круг.
+                            # Обратите внимание на этот шаг на схеме.
+                            res['response']['text'] = f'Вы пытались. Это {city.title()}. Сыграем ещё?'
                             sessionStorage['balls'] -= 1
                             if sessionStorage['balls'] < 0:
                                 sessionStorage['balls'] = 0
-                            res['response']['text'] = 'Вы пытались. Это {}. Сыграем ещё?'.format(
-                                ch_cars[sessionStorage[user_id]['city_fol']])
                             sessionStorage[user_id]['game_started'] = False
-                            sessionStorage[user_id]['city_fol'] = ''
-                            return
-
-                    else:
-                        if req['request']['original_utterance'].lower() == 'помощь':
-                            # если да, то добавляем город к sessionStorage[user_id]['guessed_cities'] и
-                            # отправляем пользователя на второй круг. Обратите внимание на этот шаг на схеме.
-                            res['response']['text'] = 'Игра была сделана учеником Яндекс.Лицея!'
-                        elif req['request']['original_utterance'].lower() == city.lower():
-                            # если да, то добавляем город к sessionStorage[user_id]['guessed_cities'] и
-                            # отправляем пользователя на второй круг. Обратите внимание на этот шаг на схеме.
-                            res['response']['text'] = 'Правильно! Теперь укажи страну производителя!'
-                            sessionStorage['balls'] += 1
                             sessionStorage[user_id]['guessed_cities'].append(city)
-                            sessionStorage[user_id]['city_fol'] = city
+                            sessionStorage[user_id]['attempt'] = 1
                             return
                         else:
-                            # если нет
-                            if attempt == 3:
-                                # если попытка третья, то значит, что все картинки мы показали.
-                                # В этом случае говорим ответ пользователю,
-                                # добавляем город к sessionStorage[user_id]['guessed_cities'] и отправляем его на второй круг.
-                                # Обратите внимание на этот шаг на схеме.
-                                res['response']['text'] = f'Вы пытались. Это {city.title()}. Сыграем ещё?'
-                                sessionStorage['balls'] -= 1
-                                if sessionStorage['balls'] < 0:
-                                    sessionStorage['balls'] = 0
-                                sessionStorage[user_id]['game_started'] = False
-                                sessionStorage[user_id]['guessed_cities'].append(city)
-                                sessionStorage[user_id]['attempt'] = 1
-                                return
-                            else:
-                                # иначе показываем следующую картинку
-                                res['response']['card'] = {}
-                                res['response']['card']['type'] = 'BigImage'
-                                res['response']['card'][
-                                    'title'] = 'Неправильно. Вот тебе дополнительное фото'
-                                res['response']['card']['image_id'] = cars[city][attempt - 1]
-                                res['response']['text'] = 'А вот и не угадал!'
-                                sessionStorage['balls'] -= 1
-                                if sessionStorage['balls'] < 0:
-                                    sessionStorage['balls'] = 0
-                        # увеличиваем номер попытки доля следующего шага
-                        sessionStorage[user_id]['attempt'] += 1
-                else:
-                    res['response']['text'] = 'Можете посмотреть месторасположение на Яндекс Картах'
+                            # иначе показываем следующую картинку
+                            res['response']['card'] = {}
+                            res['response']['card']['type'] = 'BigImage'
+                            res['response']['card'][
+                                'title'] = 'Неправильно. Вот тебе дополнительное фото'
+                            res['response']['card']['image_id'] = cars[city][attempt - 1]
+                            res['response']['text'] = 'А вот и не угадал!'
+                            sessionStorage['balls'] -= 1
+                            if sessionStorage['balls'] < 0:
+                                sessionStorage['balls'] = 0
+                    # увеличиваем номер попытки доля следующего шага
+                    sessionStorage[user_id]['attempt'] += 1
         elif sessionStorage[user_id]['diff'] == 'easy':
             if attempt == 1:
                 # если попытка первая, то случайным образом выбираем город для гадания
@@ -519,14 +542,6 @@ def play_game(res, req):
                     city = random.choice(list(cars)[:5])
                 # записываем город в информацию о пользователе
                 sessionStorage[user_id]['city'] = city
-                res['response']['buttons'].append(
-                    {
-                        'title': 'Показать город на карте',
-                        "url": "https://yandex.ru/maps/?mode=search&text={}".format(
-                            sessionStorage[user_id]['city']),
-                        'hide': True
-                    }
-                )
                 # добавляем в ответ картинку
                 res['response']['card'] = {}
                 res['response']['card']['type'] = 'BigImage'
@@ -634,14 +649,6 @@ def play_game(res, req):
                 city = random.choice(list(food)[:5])
             # записываем город в информацию о пользователе
             sessionStorage[user_id]['city'] = city
-            res['response']['buttons'].append(
-                {
-                    'title': 'Показать город на карте',
-                    "url": "https://yandex.ru/maps/?mode=search&text={}".format(
-                        sessionStorage[user_id]['city']),
-                    'hide': True
-                }
-            )
             # добавляем в ответ картинку
             res['response']['card'] = {}
             res['response']['card']['type'] = 'BigImage'
